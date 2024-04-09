@@ -58,6 +58,9 @@ func main() {
 	v1Router.Get("/healthz", handlerReadiness) //standard practice to use to see if the server is healthy and running
 	v1Router.Get("/err", handlerErr)
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))     // same path different method
+	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed)) // same path different method
+	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)                           // same path different method
 
 	router.Mount("/v1", v1Router)
 

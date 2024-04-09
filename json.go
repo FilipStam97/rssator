@@ -21,7 +21,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {
 	if code > 499 {
-		//errors in the 400 range are client errs and we dont really care about them but we do care about 500 rande since tose are bugs on our end
+		//errors in the 400 range are client errs and we dont really care about them but we do care about 500 range since tose are bugs on our end
 		log.Println("Responding with 5XX error: ", msg)
 	}
 
