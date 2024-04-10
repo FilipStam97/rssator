@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/FilipStam97/rssator/internal/database"
 	"github.com/go-chi/chi"
@@ -19,18 +20,19 @@ type apiConfig struct {
 }
 
 func main() {
-	//generally you shold commit the vendor folder with the project
+
+	//generally you should commit the vendor folder with the project
 	godotenv.Load()
 
 	portString := os.Getenv("PORT")
 
 	if portString == "" {
-		log.Fatal("PORT is not found in the enviroment!")
+		log.Fatal("PORT is not found in the environment!")
 	}
 
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
-		log.Fatal("DB_URL is not found in the enviroment!")
+		log.Fatal("DB_URL is not found in the environment!")
 	}
 
 	conn, err := sql.Open("postgres", dbURL)
@@ -39,9 +41,13 @@ func main() {
 
 	}
 
+	db := database.New(conn)
 	apiCfg := apiConfig{
-		DB: database.New(conn),
+		DB: db,
 	}
+
+	//calling the func to scrape on a nwe go routine so it does not interrupt the main flow, the ListenAndServe func at the bottom will block
+	go startScraping(db, 10, time.Minute)
 
 	router := chi.NewRouter()
 
@@ -58,9 +64,12 @@ func main() {
 	v1Router.Get("/healthz", handlerReadiness) //standard practice to use to see if the server is healthy and running
 	v1Router.Get("/err", handlerErr)
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
-	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))     // same path different method
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
 	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed)) // same path different method
 	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)                           // same path different method
+	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerCreateFeedFollow))
+	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerGetFeedFollows))
+	v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerDeleteFeedFollow))
 
 	router.Mount("/v1", v1Router)
 
