@@ -78,3 +78,41 @@ func databaseFeedFollowsToFeedFollows(dbFeedFollows []database.FeedFollow) []Fee
 	}
 	return feedFollows
 }
+
+type Post struct {
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Title       string    `json:"title"`
+	Description *string   `json:"description"` //we dont use sqql.ullString since its a nested struct and we will not get a good result we will get a nested structure)
+	// so we use *string so it will parse to either string or null (since the marshaling json in go works like that)
+	PublishedAt time.Time `json:"published_at"`
+	Url         string    `json:"url"`
+	FeedID      uuid.UUID `json:"feed_id"`
+}
+
+func databasePostToPost(dbPost database.Post) Post {
+	var description *string
+	if dbPost.Description.Valid {
+		description = &dbPost.Description.String
+	}
+
+	return Post{
+		ID:          dbPost.ID,
+		CreatedAt:   dbPost.CreatedAt,
+		UpdatedAt:   dbPost.UpdatedAt,
+		Title:       dbPost.Title,
+		Description: description,
+		PublishedAt: dbPost.PublishedAt,
+		Url:         dbPost.Url,
+		FeedID:      dbPost.FeedID,
+	}
+}
+
+func databasePostsToPosts(dbPosts []database.Post) []Post {
+	posts := []Post{}
+	for _, post := range dbPosts {
+		posts = append(posts, databasePostToPost(post))
+	}
+	return posts
+}

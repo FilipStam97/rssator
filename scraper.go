@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/FilipStam97/rssator/internal/database"
+	"github.com/google/uuid"
 )
 
 // we have a pointer to the db, number of go routines that will do the scraping and the time between the scrapes
@@ -54,7 +57,34 @@ func scrapeFeed(db *database.Queries, feed database.Feed, wg *sync.WaitGroup) {
 
 	//logging to console for now instead of storing to db
 	for _, item := range rssFeed.Chanel.Item {
-		log.Println("Found post", item.Title, "on feed", feed.Name)
+		desc := sql.NullString{}
+		if item.Description != "" {
+			desc.String = item.Description
+			desc.Valid = true
+		}
+
+		parsedPubTime, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			log.Printf("Could't parse date %v with error %v: ", item.PubDate, err)
+			continue
+		}
+		_, err = db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now().UTC(),
+			UpdatedAt:   time.Now().UTC(),
+			Title:       item.Title,
+			Description: desc,
+			PublishedAt: parsedPubTime,
+			Url:         item.Link,
+			FeedID:      feed.ID,
+		})
+
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key") {
+				continue
+			}
+			log.Println("Failed to create a post with error: ", err)
+		}
 	}
 	log.Printf("Feed %s collected, %v posts found", feed.Name, len(rssFeed.Chanel.Item))
 
