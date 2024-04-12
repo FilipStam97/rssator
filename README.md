@@ -15,7 +15,7 @@ Extennding project: <br/>
 ### To shut down and remove postgres and redis use:
     docker compose -f docker-compose.yml down
 
-### Make sure that you have the following variables in your .ev file:
+### Make sure that you have the following variables in your .env file:
     PORT=8080
     DB_URL=postgres://admin:admin@localhost:5432/postgres?sslmode=disable
 
